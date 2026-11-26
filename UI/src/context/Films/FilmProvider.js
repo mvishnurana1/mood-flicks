@@ -1,112 +1,55 @@
-import { useEffect, useState } from "react";
-import { filmContext } from "./FilmContext";
+import { useEffect, useRef, useState } from 'react';
+import { filmContext } from './FilmContext';
 import { url } from '../url';
-import { coloursTofilm, genres, colorPaletteMap } from '../../helper';
+import { genres } from '../../helper';
 
 export function FilmProvider({ children }) {
-    const [colour, setColour] = useState(undefined);
     const [topRatedFilms, setTopRatedFilms] = useState([]);
     const [filmRecommendations, setFilmRecommendations] = useState([]);
-    const [isLoading, setLoading] = useState(false);
-    const [era, setEra] = useState([]);
-    const [fetched, setFetched] = useState(false);
-    const [includeInternationalFilms, setIncludeInternationalFilms] = useState({
-        set: false,
-        value: 'No',
-    });
-    const [currentDisplay, setCurrentDisplay] = useState('get-started');
-    const [seen, setSeen] = useState([]);
-
-    async function fetchTopRatedFilms() {
-        const response = await fetch(`${url}/top-rated`);
-        const data = await response.json();
-        const list = data.results;
-        
-        setTopRatedFilms(list);
-    }
+    const [status, setStatus] = useState('idle');
+    const [seen, setSeen] = useState(() => JSON.parse(localStorage.getItem('seen')) ?? []);
+    const requestNumber = useRef(0);
 
     useEffect(() => {
-        const cachedFilms = JSON.parse(localStorage.getItem('fetched_films')) ?? [];
-        setFilmRecommendations(cachedFilms);
-
-        const films = JSON.parse(localStorage.getItem('seen')) ?? [];
-        setSeen(films);
-
-        try {
-            let call = true;
-            setLoading(true);
-
-            if (call) {
-                fetchTopRatedFilms();
-                call = false;
+        const controller = new AbortController();
+        async function loadPosters() {
+            try {
+                const response = await fetch(url + '/top-rated', { signal: controller.signal });
+                if (response.ok) {
+                    const data = await response.json();
+                    setTopRatedFilms(data.results ?? []);
+                }
+            } catch {
+                // The landing page also has a bundled poster for offline use.
             }
-        } catch (err) {
-            console.error('Error: ', err);
-        } finally {
-            setLoading(false);
         }
+        loadPosters();
+        return () => controller.abort();
     }, []);
-  
-    async function fetchRecommendations() {
-        setLoading(true);
-        setFetched(true);
 
-        const greaterDate = era[0];
-        const lesserDate = era[1];
-
-        const codes = filmsGenre(colour);
-
-        const codeListing = codes.join(',');
-        
+    async function fetchRecommendations({ era, genre }) {
+        const current = ++requestNumber.current;
+        setStatus('loading');
+        const params = new URLSearchParams({
+            releaseDateGte: era.from,
+            releaseDateLte: era.to,
+            genre_code: genres.find(item => item.name === genre).id,
+        });
         try {
-            const response = await fetch(`${url}/recommendations?releaseDateGte=${lesserDate}&releaseDateLte=${greaterDate}&genre_code=${codeListing}`);
-            const data = await response.json();
-            // const list = data.results;
-            setFilmRecommendations(data);
-
-            localStorage.setItem('fetched_films', JSON.stringify(data));
-        } catch (err) {
-            throw err;
-        } finally {
-            setLoading(false);
+            const response = await fetch(url + '/recommendations?' + params);
+            if (!response.ok) throw new Error('Request failed');
+            const films = await response.json();
+            if (!Array.isArray(films)) throw new Error('Invalid recommendations');
+            if (current === requestNumber.current) {
+                setFilmRecommendations(films);
+                setStatus('ready');
+            }
+        } catch {
+            if (current === requestNumber.current) setStatus('error');
         }
     }
 
-    function filmsGenre(color = '#22092C') {
-        // Maps to Purple by default:
-        const colourString = (colorPaletteMap[color]);
-        
-        const codes = computeGenreCode(coloursTofilm[colourString]);
-        return codes;
-    }
-    
-    function computeGenreCode(generesFound) {
-        const list = generesFound.map(genreName => genres.filter(g => genreName === g.name)).flat(1);
-    
-        const codes = list.map(co => co.id);
-        return codes;
-    }
-
-    return (<filmContext.Provider value={{
-        setColour: setColour,
-        filmRecommendations: filmRecommendations,
-        colour: colour,
-        era: era,
-        isLoading: isLoading,
-        includeInternationalFilms: includeInternationalFilms,
-        fetched: fetched,
-        fetchRecommendations: fetchRecommendations,
-        setLoading: setLoading,
-        setEra: setEra,
-        setFilmRecommendations: setFilmRecommendations,
-        setIncludeInternationalFilms: setIncludeInternationalFilms,
-        setFetched: setFetched,
-        topRatedFilms: topRatedFilms,
-        currentDisplay: currentDisplay,
-        setCurrentDisplay: setCurrentDisplay,
-        seen: seen,
-        setSeen: setSeen,
-    }}>
-        { children }
-    </filmContext.Provider>)
+    return <filmContext.Provider value={{
+        topRatedFilms, filmRecommendations, status, fetchRecommendations, seen, setSeen
+    }}>{children}</filmContext.Provider>;
 }

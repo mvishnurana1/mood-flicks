@@ -23,13 +23,13 @@ function AppModal({ closeModal, data, isModalOpen }) {
     }
 
     return <ReactModal
-                ariaHideApp={false}
+                appElement={document.getElementById('root')} contentLabel={title}
                 className={'modal'}
                 isOpen={isModalOpen} 
                 onRequestClose={closeModal}>
         <div className='modal-layout'>
             <div className='flex-top'>
-                <button className='modal-button'
+                <button className='modal-button' aria-label='Close movie details'
                     onClick={() => closeModal()}>
                     <span style={{ fontWeight: 'bold'}}>
                         &#x2715;

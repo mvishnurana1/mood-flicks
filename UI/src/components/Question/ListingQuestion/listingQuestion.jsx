@@ -1,37 +1,22 @@
+import { useEffect, useRef } from 'react';
 import './listingQuestion.scss';
 
-function ListQuestion({
-  elementClass,
-  list,
-  questionContent,
-  handleClick,
-  applyBackGroundColour,
-  buttonLayout,
-  imgListing,
-}) {
-  return <>
-    <div className={'vertically-center'}>
-      <div style={{display:'flex', flexDirection:'column', alignItems: 'center'}}>
-        <h2 className='gl-header-level-two'>{ questionContent }</h2>
-      </div>
-        <div className='gl-horizontally-centre'>
-          <div className={`${buttonLayout} options-listing`}>
-              {list.map((choice, index) => <button
-                key={ index }
-                onClick={() => handleClick(choice)}
-                style={{backgroundColor: applyBackGroundColour ? `${ choice.color }` : ''}}
-                className={'button-no-native-style '+ elementClass}>
-                 {imgListing && <img 
-                    width={choice.width}
-                    src={choice.imgSrc}
-                    alt={choice.alt}
-                  />}
-              </button>
-              )}
-          </div>
+export default function ListQuestion({ title, step, choices, selected, onChoose, onBack, editing }) {
+    const heading = useRef(null);
+    useEffect(() => { heading.current.focus(); }, [title]);
+    return <main className="quiz panel">
+        <div className="quiz-nav">
+            <button className="text-action" onClick={onBack}>← {editing ? 'Results' : 'Back'}</button>
+            <span>{editing ? 'Edit preferences' : 'Step ' + step + ' of 3'}</span>
         </div>
-    </div>
-  </>
+        <h1 ref={heading} tabIndex="-1">{title}</h1>
+        <div className="choices">
+            {choices.map(choice => <button key={choice.label} className="choice"
+                aria-pressed={selected === choice.label} onClick={() => onChoose(choice)}>
+                {choice.imgSrc ? <img src={choice.imgSrc} alt="" /> :
+                    <span className="swatch" style={{backgroundColor: choice.color}} />}
+                {choice.label}
+            </button>)}
+        </div>
+    </main>;
 }
-
-export default ListQuestion;

@@ -1,153 +1,41 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { AppModal, Card, Loader } from '../../components';
+import { useContext, useEffect, useRef, useState } from 'react';
+import { AppModal, Card } from '../../components';
 import { filmContext } from '../../context';
-import { arrow, globe } from '../../assets';
 import './FilmRecommendations.scss';
 
-function FilmRecommendations() {
-    const {
-      filmRecommendations,
-      isLoading,
-      setColour,
-      setEra,
-      setIncludeInternationalFilms,
-      setFetched,
-      setCurrentDisplay,
-      setSeen,
-      fetched } = useContext(filmContext);
+export function FilmRecommendations({ answers, onEdit, onRetry }) {
+    const { filmRecommendations, status, seen, setSeen } = useContext(filmContext);
+    const [chosenFilm, setChosenFilm] = useState(null);
+    const heading = useRef(null);
+    useEffect(() => { heading.current.focus(); }, []);
 
-    const [ chosenFilm, setChosenFilm ] = useState(null);
-    const [ open, setOpen ] = useState(false);
-    const [ isScrollingDown, setIsScrollingDown ] = useState(false);
-
-    const error = filmRecommendations === null;
-    const noResult = filmRecommendations?.length === 0;
-
-    useEffect(() => {
-      const handleScroll = () => {
-        const currentScrollTop = document.documentElement.scrollTop;
-        setIsScrollingDown(currentScrollTop > 250);
-      };
-  
-      window.addEventListener('scroll', handleScroll);
-      return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
-
-    if (!filmRecommendations) {
-      return <></>
+    function openFilm(film) {
+        if (!seen.some(item => item.id === film.id)) {
+            const updated = [...seen, film];
+            localStorage.setItem('seen', JSON.stringify(updated));
+            setSeen(updated);
+        }
+        setChosenFilm(film);
     }
-
-    if (error) {
-      <div className='gl-horizontally-centre'>
-        <h2 className='gl-header-level-two'>Sorry Something Went Wrong</h2>
-    </div>
-    }
-
-    if (isLoading) {
-      return <div className='loader-container'>
-          <Loader />
-        </div>
-    }
-
-    function handleClick(film) {
-      let cachedFilms = JSON.parse(localStorage.getItem('seen')) ?? [];
-      const filtered = cachedFilms.filter((existingFilm) => existingFilm.id === film.id);
-
-      if ((cachedFilms.length === 0) || (filtered.length === 0)) {
-          cachedFilms.push(film);
-      }
-
-      setSeen(cachedFilms);
-      localStorage.setItem('seen', JSON.stringify(cachedFilms));
-
-      setOpen(true);
-      setChosenFilm(film);
-    }
-
-    function setStatesToDefault() {
-      setEra([]);
-      setIncludeInternationalFilms({
-        set: false,
-        value: 'No',
-      });
-      setColour(undefined);
-      setFetched(false);
-      setCurrentDisplay('colour-question');
-    }
-
-    function noResultsReturned() {
-      return <div className='no-results-container'>
-        <div className='content'>
-          <div>
-            <div className='gl-horizontally-centre'>
-              <img src={ globe } alt='film-gif' width={'200px'} />
-            </div>
-            <h2 className='header-spacing'>Well that's a miss</h2>
-            <span>
-              Sorry, that filter combination has no results.          
-            </span>
-            <span>Please try different criteria.</span>
-          </div>
-          <div className='gl-horizontally-centre main-button'>
-            <button className='button-no-native-style app-button back-button'
-              onClick={() => setStatesToDefault()}>
-                <span>Try Again</span>
-            </button>
-          </div>
-        </div>
-    </div>
-    }
-
-    return (
-        <>
-          <div className={noResult ? 'hide': ''}>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <h2 className='gl-header-level-two' style={{ textAlign: 'center' }}>Recommendations For You</h2>
-            </div>
-            {!open && <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0.5rem 2rem' }}>
-              <button className='back-to-questions-fab'
-                onClick={() => setStatesToDefault()}>
-                  <span>Back To Questions</span>
-              </button>
-            </div>}
-          </div>
-
-          {noResult && fetched && noResultsReturned()}
-    
-          <div className='app-layout gl-horizontally-centre'>
-            {filmRecommendations.map((film) => <Card
-              onClick={() => handleClick(film)}
-              film={ film }
-              cardMainClass="movie-card-hover-effect"
-              originalTitle={ film.title }
-              filmRating={ film.vote_average }
-              ImgclassNames='card-main-img'
-              key={ film.id }
-              posterPath={ film.poster_path ?? '' }
-              />)}
-
-              <div>
-                {isScrollingDown && <button className='fab-button'>
-                  <img 
-                    width='30px'
-                    src={arrow}
-                    onClick={() => {
-                      document.body.scrollTop = 0; // For Safari
-                      document.documentElement.scrollTop = 0;
-                    }}
-                    alt='arrow-top'
-                  />
-                </button>}
-              </div>
-          </div>
-
-          {open && <AppModal
-            isModalOpen={ open }
-            closeModal={() => setOpen(false)}
-            data={ chosenFilm }
-          />}
-        </>
-      )
+    return <main className="results panel">
+        <h1 ref={heading} tabIndex="-1">Your movie picks</h1>
+        <fieldset className="preferences">
+            <legend>Edit preferences</legend>
+            <button onClick={() => onEdit('mood')}>Mood · {answers.mood.label}</button>
+            <button onClick={() => onEdit('genre')}>Genre · {answers.genre}</button>
+            <button onClick={() => onEdit('era')}>Era · {answers.era.label}</button>
+        </fieldset>
+        {status === 'loading' && <p role="status">Finding your movies…</p>}
+        {status === 'error' && <section role="alert"><h2>Movies couldn’t load</h2>
+            <p>Your preferences are saved for this search.</p>
+            <button className="primary-action" onClick={onRetry}>Retry</button></section>}
+        {status === 'ready' && (filmRecommendations.length ?
+            <><div className="film-grid">{filmRecommendations.map(film =>
+                <Card key={film.id} film={film} onClick={openFilm} />)}</div><button className="text-action" onClick={() => heading.current.focus()}>Back to top ↑</button></> :
+            <section role="status"><h2>No movies match these choices</h2>
+                <p>Try another era or mood to find more movies.</p>
+                <button className="primary-action" onClick={() => onEdit('era')}>Change era</button>
+            </section>)}
+        {chosenFilm && <AppModal isModalOpen closeModal={() => setChosenFilm(null)} data={chosenFilm} />}
+    </main>;
 }
-
-export { FilmRecommendations };

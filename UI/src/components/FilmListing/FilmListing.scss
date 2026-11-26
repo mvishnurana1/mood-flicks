@@ -1,11 +1,5 @@
-@import '../../global.scss';
-
-
-.background-layout {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    overflow-y: hidden;
-    overflow-x: hidden;
-    overflow: -moz-scrollbars-horizontal;
-}
+.poster-display { display: flex; align-items: center; justify-content: center; isolation: isolate; padding: 1.5rem; overflow: hidden; background: #e6dfd2; border-radius: 12px; }
+.poster-display img { width: 49%; aspect-ratio: 2/3; object-fit: cover; border: 4px solid white; border-radius: 3px; box-shadow: 0 8px 18px #30281f38; transform: rotate(-5deg); }
+.poster-display img + img { margin-left: -24%; transform: rotate(2deg); }
+.poster-display img:nth-child(3) { transform: rotate(8deg); }
+.poster-display img:only-child { width: 58%; }

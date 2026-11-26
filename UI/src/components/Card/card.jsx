@@ -1,38 +1,14 @@
-import { star, blankFilm } from '../../assets';
+import { blankFilm } from '../../assets';
+import { genreIdToGenreNameMapping } from '../../helper';
 import './card.scss';
 
-function Card({
-    film,
-    cardMainClass,
-    cardStyles,
-    ImgclassNames,
-    originalTitle,
-    posterPath,
-    filmRating,
-    onClick,
-}) {
-    const imageBaseUrl = 'https://image.tmdb.org/t/p/original/';
-
-    return <>
-        <div
-            onClick={() => onClick(film)}
-            className={`card-body ${cardMainClass}`} 
-            style={cardStyles}>
-            <img 
-                alt={`${originalTitle}-poster`}
-                className={`${ImgclassNames}`} 
-                src={ posterPath ? `${imageBaseUrl}${posterPath}` : `${blankFilm}`}
-            />
-            <div style={{ margin: '0 10px' }}>
-                {originalTitle && <span className='movie-title' title={ originalTitle }>{ originalTitle }</span>}
-            </div>
-
-            <div className='card-footer'>
-                <span>{ filmRating?.toFixed(1) }</span>
-                <img src={star} alt="" width="12.8px" height="12.8px" />
-            </div>
-        </div>
-    </>
+export default function Card({ film, onClick }) {
+    const { title, poster_path, release_date, genre_ids, vote_average } = film;
+    const metadata = [release_date?.slice(0, 4), genreIdToGenreNameMapping[genre_ids?.[0]]];
+    return <button className="film-card" onClick={() => onClick(film)}>
+        <img alt="" loading="lazy" src={poster_path ? 'https://image.tmdb.org/t/p/w342' + poster_path : blankFilm} />
+        <span className="film-card-title">{title}</span>
+        <span className="film-meta">{metadata.filter(Boolean).join(' · ')}</span>
+        {Number.isFinite(vote_average) && <span className="rating">★ {vote_average.toFixed(1)}/10</span>}
+    </button>;
 }
-
-export default Card;

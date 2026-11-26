@@ -1,12 +1,4 @@
-@import "../../global.scss";
-
-.item {
-    border-radius: 0.25rem;
-    padding: 0.25rem;
-
-    &:hover {
-        background-color: #A8A8A8;
-        color: black;
-        font-weight: bold;
-    }
-}
+.history-row, .history-row button { display: flex; align-items: center; gap: .5rem; }
+.history-row { justify-content: space-between; }
+.history-row button { padding: .5rem; border: 0; background: transparent; text-align: left; }
+.history-row button:hover { background: #f7f3eb; }

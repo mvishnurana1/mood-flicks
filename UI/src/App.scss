@@ -1,63 +1,26 @@
 @import './global.scss';
 
-.fab-button-so-far {
-  position: fixed;
-  bottom: 20px;
-  margin-bottom: 20px;
-  left: 20px;
-  align-items: center;
-  background-color: white;
-  border: none;
-  border-radius: 50%;
-  display: flex;
-  padding: 1rem;
-  font: inherit;
-  cursor: pointer;
-  box-shadow: .25rem 0.25rem 0.25rem 0.25rem grey;
-  justify-content: center;
-  z-index: var(--layer-1);
+.discovery {
+    --paper: #f7f3eb;
+    --ink: #242321;
+    --accent: #933d30;
+    min-height: 100%;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Roboto', Arial, sans-serif;
 }
-
-.fab-button-so-far-notifications {
-  position: fixed;
-  bottom: 10px;
-  margin-bottom: 80px;
-  left: 50px;
-  align-items: center;
-  border: none;
-  border-radius: 50%;
-  display: flex;
-  padding: 0.55rem; 
-  font: inherit;
-  cursor: pointer;
-  color: black;
-  font-weight: 700;
-  justify-content: center;
-  z-index: var(--layer-1);
-}
-
-.visited-movies-container {
-  position: fixed;
-  bottom: 20px;
-  border-radius: 1rem;
-  max-height: 400px;
-  margin-bottom: 85px;
-  left: 20px;
-  background-color: black;
-  padding: 0.55rem; 
-  font: inherit;
-  cursor: pointer;
-  color: white;
-  overflow-y: auto;
-  justify-content: center;
-  z-index: var(--layer-1);
-}
-
-.visited-movies-container::-webkit-scrollbar {
-  display: none;
-}
-
-.align-centre {
-  @extend .gl-horizontal-space-between;
-  align-items: center;
-}
+.discovery *, .discovery *::before, .discovery *::after { box-sizing: border-box; }
+.discovery button { font: inherit; cursor: pointer; }
+button:focus-visible { outline: 3px solid #356fc0; outline-offset: 3px; }
+.discovery h1 { font: 500 clamp(2.5rem, 6vw, 5rem)/1.04 Georgia, serif; letter-spacing: -.045em; margin: 0 0 1.5rem; }
+.discovery h1:focus { outline: none; }
+.masthead, .panel, .hero { width: Min(1120px, 90%); margin: auto; }
+.masthead { position: relative; min-height: 70px; display: flex; justify-content: space-between; align-items: center; gap: 1rem; border-bottom: 1px solid #cbc4b8; }
+.wordmark { font: bold 1.25rem Georgia, serif; }
+.discovery .primary-action { border: 0; background: var(--accent); color: white; border-radius: 6px; padding: .9rem 1.3rem; font-weight: bold; }
+.primary-action:hover { filter: brightness(.9); }
+.text-action { color: var(--accent); background: none; border: 0; padding: .6rem .25rem; }
+.text-action:hover { text-decoration: underline; }
+.panel { padding: clamp(2rem, 6vw, 5rem) 0; }
+.visited-movies-container { position: absolute; right: 0; top: 100%; z-index: 2; background: white; padding: .6rem; border: 1px solid #cbc4b8; max-height: 50vh; overflow: auto; border-radius: 6px; }
+.align-centre { @extend .gl-horizontal-space-between; align-items: center; }
