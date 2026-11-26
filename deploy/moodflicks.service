@@ -1,0 +1,18 @@
+[Unit]
+Description=MoodFlicks recommendation API
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+WorkingDirectory=/opt/moodflicks/API
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=3002
+EnvironmentFile=/etc/moodflicks.env
+ExecStart=/usr/bin/node index.js
+DynamicUser=yes
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

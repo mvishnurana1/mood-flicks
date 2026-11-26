@@ -1,12 +1,18 @@
 const express = require("express");
 const cors = require("cors");
 const fetch = require("node-fetch");
-const secrets = require("./secrets/secrets.json");
-const topRated = require("./secrets/top-rated");
+const { existsSync } = require("node:fs");
+const path = require("node:path");
 
 const app = express();
 const PORT = process.env.PORT || 3002;
-const moviesEndpoint = "https://api.themoviedb.org/3/discover/movie";
+const HOST = process.env.HOST;
+const tmdbBaseUrl = "https://api.themoviedb.org/3";
+const secretsPath = path.join(__dirname, "secrets", "secrets.json");
+const topRatedPath = path.join(__dirname, "secrets", "top-rated.js");
+const tmdbToken = process.env.TMDB_TOKEN?.trim() ||
+  (existsSync(secretsPath) ? require(secretsPath).token : undefined);
+const cachedTopRated = existsSync(topRatedPath) ? require(topRatedPath) : null;
 const langs = ["de", "ja", "es", "hi", "ko", "en", "ru"];
 
 app.use(cors());
@@ -35,16 +41,18 @@ app.get("/recommendations", async (req, res) => {
     const filmsByLanguage = await Promise.all(langs.map(lang => fetchMovies(filters, lang)));
     return res.json(filmsByLanguage.flat());
   } catch (error) {
-    console.error("TMDB recommendations failed:", error.type || error.message);
-    if (error.type === "request-timeout" || error.type === "body-timeout") {
-      return res.status(504).json({ error: "TMDB took too long to respond." });
-    }
-    return res.status(502).json({ error: "TMDB recommendations are temporarily unavailable." });
+    return sendTmdbError(res, error);
   }
 });
 
-app.get("/top-rated", (_req, res) => {
-  res.send(topRated);
+app.get("/top-rated", async (_req, res) => {
+  if (cachedTopRated) return res.json(cachedTopRated);
+
+  try {
+    return res.json(await fetchTmdb("/movie/top_rated"));
+  } catch (error) {
+    return sendTmdbError(res, error);
+  }
 });
 
 function isDate(value) {
@@ -57,25 +65,47 @@ function isDate(value) {
 
 async function fetchMovies(filters, lang) {
   const query = new URLSearchParams({ ...filters, with_original_language: lang });
-  const response = await fetch(moviesEndpoint + "?" + query, {
+  const { results } = await fetchTmdb("/discover/movie?" + query);
+  return results.slice(0, 5);
+}
+
+async function fetchTmdb(endpoint) {
+  if (!tmdbToken) {
+    const error = new Error("Configure TMDB_TOKEN with a TMDB API Read Access Token.");
+    error.type = "missing-token";
+    throw error;
+  }
+
+  const response = await fetch(tmdbBaseUrl + endpoint, {
     headers: {
       Accept: "application/json",
-      Authorization: `Bearer ${secrets.token}`,
+      Authorization: `Bearer ${tmdbToken}`,
     },
     redirect: "error",
     timeout: 8000,
   });
 
   if (!response.ok) {
-    throw new Error(`TMDB returned HTTP ${response.status} for language ${lang}`);
+    throw new Error(`TMDB returned HTTP ${response.status}`);
   }
-  const { results } = await response.json();
-  if (!Array.isArray(results)) {
-    throw new Error(`TMDB returned an invalid movie list for language ${lang}`);
+  const data = await response.json();
+  if (!Array.isArray(data?.results)) {
+    throw new Error("TMDB returned an invalid movie list.");
   }
-  return results.slice(0, 5);
+  return data;
 }
 
-app.listen(PORT, () => {
-  console.log(`${PORT}`);
+function sendTmdbError(res, error) {
+  console.error("TMDB request failed:", error.message);
+  if (error.type === "missing-token") {
+    return res.status(503).json({ error: "Movie data is temporarily unavailable." });
+  }
+  if (error.type === "request-timeout" || error.type === "body-timeout") {
+    return res.status(504).json({ error: "TMDB took too long to respond." });
+  }
+  return res.status(502).json({ error: "Movie data is temporarily unavailable." });
+}
+
+app.listen(PORT, HOST, () => {
+  console.log(`MoodFlicks API listening on port ${PORT}`);
 });
