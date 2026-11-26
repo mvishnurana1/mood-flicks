@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import App from './App';
 import { FilmProvider } from './context';
 
@@ -28,9 +28,58 @@ test('uses the selected genre, keeps it when editing the era, and retries the sa
         await screen.findByText('Movies couldn’t load');
         expect(global.fetch.mock.calls[2][0]).toContain('releaseDateGte=1970-01-01&releaseDateLte=1989-12-31&genre_code=35');
         click('Retry');
-        await waitFor(() => expect(screen.getByText('Movie pick')).toBeInTheDocument());
+        expect(await screen.findByText('Movie pick')).toBeInTheDocument();
         expect(global.fetch.mock.calls[3][0]).toBe(global.fetch.mock.calls[2][0]);
     } finally {
         global.fetch = originalFetch;
+    }
+});
+
+test('dismisses recently viewed on outside clicks and keeps movie dialogs open', async () => {
+    const movie = { release_date: '1985-02-01', genre_ids: [35], vote_average: 8 };
+    const viewed = { ...movie, id: 1, title: 'Viewed movie' };
+    const removable = { ...movie, id: 2, title: 'Remove me' };
+    const recommendation = { ...movie, id: 3, title: 'Recommended movie' };
+    const originalFetch = global.fetch;
+    const originalHistory = localStorage.getItem('seen');
+    const root = document.body.appendChild(document.createElement('div'));
+    root.id = 'root';
+    localStorage.setItem('seen', JSON.stringify([viewed, removable]));
+    global.fetch = jest.fn()
+        .mockResolvedValueOnce({ ok: false })
+        .mockResolvedValueOnce({ ok: true, json: async () => [recommendation] });
+
+    try {
+        render(<FilmProvider><App /></FilmProvider>, { container: root });
+        const historyToggle = screen.getByRole('button', { name: /Recently viewed/ });
+        fireEvent.click(historyToggle);
+        fireEvent.click(screen.getByRole('button', { name: 'Remove Remove me' }));
+        expect(historyToggle).toHaveAttribute('aria-expanded', 'true');
+        expect(screen.queryByRole('button', { name: 'Remove me' })).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('heading', { level: 1 }));
+        expect(historyToggle).toHaveAttribute('aria-expanded', 'false');
+        expect(screen.queryByRole('button', { name: 'Viewed movie' })).not.toBeInTheDocument();
+
+        fireEvent.click(historyToggle);
+        fireEvent.click(screen.getByRole('button', { name: 'Viewed movie' }));
+        expect(historyToggle).toHaveAttribute('aria-expanded', 'false');
+        expect(screen.getByRole('dialog', { name: 'Viewed movie' })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Close movie details' }));
+        expect(historyToggle).toHaveFocus();
+
+        fireEvent.click(screen.getByRole('button', { name: /Find my movie/ }));
+        fireEvent.click(screen.getByRole('button', { name: 'Upbeat' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Comedy' }));
+        fireEvent.click(screen.getByRole('button', { name: '1970–1989' }));
+        const result = await screen.findByRole('button', { name: /Recommended movie/ });
+        fireEvent.click(historyToggle);
+        fireEvent.click(result);
+        expect(historyToggle).toHaveAttribute('aria-expanded', 'false');
+        expect(screen.getByRole('dialog', { name: 'Recommended movie' })).toBeInTheDocument();
+    } finally {
+        global.fetch = originalFetch;
+        if (originalHistory === null) localStorage.removeItem('seen');
+        else localStorage.setItem('seen', originalHistory);
     }
 });

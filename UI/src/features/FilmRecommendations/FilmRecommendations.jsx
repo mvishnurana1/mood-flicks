@@ -1,22 +1,13 @@
-import { useContext, useEffect, useRef, useState } from 'react';
-import { AppModal, Card } from '../../components';
+import { useContext, useEffect, useRef } from 'react';
+import { Card } from '../../components';
 import { filmContext } from '../../context';
 import './FilmRecommendations.scss';
 
-export function FilmRecommendations({ answers, onEdit, onRetry }) {
-    const { filmRecommendations, status, seen, setSeen } = useContext(filmContext);
-    const [chosenFilm, setChosenFilm] = useState(null);
+export function FilmRecommendations({ answers, onEdit, onOpenFilm, onRetry }) {
+    const { filmRecommendations, status } = useContext(filmContext);
     const heading = useRef(null);
     useEffect(() => { heading.current.focus(); }, []);
 
-    function openFilm(film) {
-        if (!seen.some(item => item.id === film.id)) {
-            const updated = [...seen, film];
-            localStorage.setItem('seen', JSON.stringify(updated));
-            setSeen(updated);
-        }
-        setChosenFilm(film);
-    }
     return <main className="results panel">
         <h1 ref={heading} tabIndex="-1">Your movie picks</h1>
         <fieldset className="preferences">
@@ -31,11 +22,10 @@ export function FilmRecommendations({ answers, onEdit, onRetry }) {
             <button className="primary-action" onClick={onRetry}>Retry</button></section>}
         {status === 'ready' && (filmRecommendations.length ?
             <><div className="film-grid">{filmRecommendations.map(film =>
-                <Card key={film.id} film={film} onClick={openFilm} />)}</div><button className="text-action" onClick={() => heading.current.focus()}>Back to top ↑</button></> :
+                <Card key={film.id} film={film} onClick={onOpenFilm} />)}</div><button className="text-action" onClick={() => heading.current.focus()}>Back to top ↑</button></> :
             <section role="status"><h2>No movies match these choices</h2>
                 <p>Try another era or mood to find more movies.</p>
                 <button className="primary-action" onClick={() => onEdit('era')}>Change era</button>
             </section>)}
-        {chosenFilm && <AppModal isModalOpen closeModal={() => setChosenFilm(null)} data={chosenFilm} />}
     </main>;
 }

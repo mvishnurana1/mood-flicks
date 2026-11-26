@@ -1,12 +1,10 @@
-import { useContext, useState } from 'react';
+import { useContext } from 'react';
 import { filmContext } from '../../context';
-import { AppModal } from '../AppModal';
 import { bin, blankFilm } from '../../assets';
 import './conciseFilmList.scss';
 
-export function ConciseFilmList() {
+export function ConciseFilmList({ onOpenFilm }) {
     const { seen, setSeen } = useContext(filmContext);
-    const [openedFilm, setOpenedFilm] = useState(null);
     function removeFilm(id) {
         const updated = seen.filter(film => film.id !== id);
         localStorage.setItem('seen', JSON.stringify(updated));
@@ -14,7 +12,7 @@ export function ConciseFilmList() {
     }
     return <>
         {seen.map(film => <div className="history-row" key={film.id}>
-            <button onClick={() => setOpenedFilm(film)}>
+            <button onClick={() => onOpenFilm(film)}>
                 <img alt="" width="28" src={film.poster_path ? 'https://image.tmdb.org/t/p/w92' + film.poster_path : blankFilm} />
                 {film.title}
             </button>
@@ -22,6 +20,5 @@ export function ConciseFilmList() {
                 <img src={bin} alt="" width="16" />
             </button>
         </div>)}
-        {openedFilm && <AppModal isModalOpen closeModal={() => setOpenedFilm(null)} data={openedFilm} />}
     </>;
 }

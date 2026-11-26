@@ -5,3 +5,29 @@
 .choice:hover, .choice[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .choice img { width: 100%; max-width: 165px; height: 90px; object-fit: contain; }
 .swatch { width: 50px; height: 50px; border-radius: 50%; }
+
+.choices--compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .65rem;
+}
+
+.discovery .choices--compact .choice {
+    gap: .75rem;
+    padding: 1rem .4rem;
+    font-size: .9375rem;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.choices--compact .swatch {
+    width: 42px;
+    height: 42px;
+}
+
+@media (min-width: 420px) {
+    .choices--compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 800px) {
+    .choices--compact { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
